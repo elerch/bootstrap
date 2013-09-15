@@ -1,14 +1,14 @@
 angular.module('ui.bootstrap.transition', [])
 
 /**
- * $transition service provides a consistent interface to trigger CSS 3 transitions and to be informed when they complete.
- * @param  {DOMElement} element  The DOMElement that will be animated.
- * @param  {string|object|function} trigger  The thing that will cause the transition to start:
- *   - As a string, it represents the css class to be added to the element.
- *   - As an object, it represents a hash of style attributes to be applied to the element.
- *   - As a function, it represents a function to be called that will cause the transition to occur.
- * @return {Promise}  A promise that is resolved when the transition finishes.
- */
+* $transition service provides a consistent interface to trigger CSS 3 transitions and to be informed when they complete.
+* @param {DOMElement} element The DOMElement that will be animated.
+* @param {string|object|function} trigger The thing that will cause the transition to start:
+* - As a string, it represents the css class to be added to the element.
+* - As an object, it represents a hash of style attributes to be applied to the element.
+* - As a function, it represents a function to be called that will cause the transition to occur.
+* @return {Promise} A promise that is resolved when the transition finishes.
+*/
 .factory('$transition', ['$q', '$timeout', '$rootScope', function($q, $timeout, $rootScope) {
 
   var $transition = function(element, trigger, options) {
@@ -50,6 +50,31 @@ angular.module('ui.bootstrap.transition', [])
         element.unbind(endEventName, transitionEndHandler);
       }
       deferred.reject('Transition cancelled');
+    };
+
+    // Emulate transitionend event, useful when support is assumed to be
+    // available, but may not actually be used due to a transition property
+    // not being used in CSS (for example, in versions of firefox prior to 16,
+    // only -moz-transition is supported -- and is not used in Bootstrap3's CSS
+    // -- As such, no transitionend event would be fired due to no transition
+    // ever taking place. This method allows a fallback for such browsers.)
+    deferred.promise.emulateTransitionEnd = function(duration) {
+      var called = false;
+      deferred.promise.then(
+        function() { called = true; },
+        function() { called = true; }
+      );
+
+      var callback = function() {
+        if ( !called ) {
+          // If we got here, we probably aren't going to get a real
+          // transitionend event. Emit a dummy to the handler.
+          element.triggerHandler(endEventName);
+        }
+      };
+
+      $timeout(callback, duration);
+      return deferred.promise;
     };
 
     return deferred.promise;
