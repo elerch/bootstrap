@@ -74,7 +74,8 @@ angular.module('ui.bootstrap.pagination', [])
   previousText: 'Previous',
   nextText: 'Next',
   lastText: 'Last',
-  rotate: true
+  rotate: true,
+  templateUrl: 'template/pagination/pagination.html'
 })
 
 .directive('pagination', ['$parse', 'paginationConfig', function($parse, config) {
@@ -87,7 +88,7 @@ angular.module('ui.bootstrap.pagination', [])
       numPages: '='
     },
     controller: 'PaginationController',
-    templateUrl: 'template/pagination/pagination.html',
+    templateUrl: config.templateUrl,
     replace: true,
     link: function(scope, element, attrs, paginationCtrl) {
 
@@ -195,7 +196,8 @@ angular.module('ui.bootstrap.pagination', [])
   itemsPerPage: 10,
   previousText: '« Previous',
   nextText: 'Next »',
-  align: true
+  align: true,
+  templateUrl: 'template/pagination/pager.html'
 })
 
 .directive('pager', ['pagerConfig', function(config) {
@@ -208,7 +210,7 @@ angular.module('ui.bootstrap.pagination', [])
       numPages: '='
     },
     controller: 'PaginationController',
-    templateUrl: 'template/pagination/pager.html',
+    templateUrl: config.templateUrl,
     replace: true,
     link: function(scope, element, attrs, paginationCtrl) {
 

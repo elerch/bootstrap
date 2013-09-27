@@ -15,11 +15,9 @@ angular.module('ui.bootstrap.tabs', [])
   };
 })
 
-.controller('TabsetController', ['$scope', '$element',
-function TabsetCtrl($scope, $element) {
-
+.controller('TabsetController', ['$scope', function TabsetCtrl($scope) {
   var ctrl = this,
-    tabs = ctrl.tabs = $scope.tabs = [];
+      tabs = ctrl.tabs = $scope.tabs = [];
 
   ctrl.select = function(tab) {
     angular.forEach(tabs, function(tab) {
@@ -47,6 +45,12 @@ function TabsetCtrl($scope, $element) {
   };
 }])
 
+.constant('tabsConfig', {
+  tabsetTemplateUrl: 'template/tabs/tabset.html',
+  tabTemplateUrl: 'template/tabs/tab.html',
+  titlesTemplateUrl: 'template/tabs/tabset-titles.html'
+})
+
 /**
  * @ngdoc directive
  * @name ui.bootstrap.tabs.directive:tabset
@@ -56,7 +60,6 @@ function TabsetCtrl($scope, $element) {
  * Tabset is the outer container for the tabs directive
  *
  * @param {boolean=} vertical Whether or not to use vertical styling for the tabs.
- * @param {boolean=} justified Whether or not to use justified styling for the tabs.
  * @param {string=} direction  What direction the tabs should be rendered. Available:
  * 'right', 'left', 'below'.
  *
@@ -64,22 +67,18 @@ function TabsetCtrl($scope, $element) {
 <example module="ui.bootstrap">
   <file name="index.html">
     <tabset>
-      <tab heading="Tab 1"><b>First</b> Content!</tab>
-      <tab heading="Tab 2"><i>Second</i> Content!</tab>
+      <tab heading="Vertical Tab 1"><b>First</b> Content!</tab>
+      <tab heading="Vertical Tab 2"><i>Second</i> Content!</tab>
     </tabset>
     <hr />
     <tabset vertical="true">
       <tab heading="Vertical Tab 1"><b>First</b> Vertical Content!</tab>
       <tab heading="Vertical Tab 2"><i>Second</i> Vertical Content!</tab>
     </tabset>
-    <tabset justified="true">
-      <tab heading="Justified Tab 1"><b>First</b> Justified Content!</tab>
-      <tab heading="Justified Tab 2"><i>Second</i> Justified Content!</tab>
-    </tabset>
   </file>
 </example>
  */
-.directive('tabset', function() {
+.directive('tabset', ['tabsConfig', function(tabsConfig) {
   return {
     restrict: 'EA',
     transclude: true,
@@ -87,11 +86,10 @@ function TabsetCtrl($scope, $element) {
     require: '^tabset',
     scope: {},
     controller: 'TabsetController',
-    templateUrl: 'template/tabs/tabset.html',
+    templateUrl: tabsConfig.tabsetTemplateUrl,
     compile: function(elm, attrs, transclude) {
       return function(scope, element, attrs, tabsetCtrl) {
         scope.vertical = angular.isDefined(attrs.vertical) ? scope.$parent.$eval(attrs.vertical) : false;
-        scope.justified = angular.isDefined(attrs.justified) ? scope.$parent.$eval(attrs.justified) : false;
         scope.type = angular.isDefined(attrs.type) ? scope.$parent.$eval(attrs.type) : 'tabs';
         scope.direction = angular.isDefined(attrs.direction) ? scope.$parent.$eval(attrs.direction) : 'top';
         scope.tabsAbove = (scope.direction != 'below');
@@ -100,7 +98,7 @@ function TabsetCtrl($scope, $element) {
       };
     }
   };
-})
+}])
 
 /**
  * @ngdoc directive
@@ -182,13 +180,12 @@ function TabsetCtrl($scope, $element) {
   </file>
 </example>
  */
-.directive('tab', ['$parse', '$http', '$templateCache', '$compile',
-function($parse, $http, $templateCache, $compile) {
+.directive('tab', ['$parse', 'tabsConfig', function($parse, tabsConfig) {
   return {
     require: '^tabset',
     restrict: 'EA',
     replace: true,
-    templateUrl: 'template/tabs/tab.html',
+    templateUrl: tabsConfig.tabTemplateUrl,
     transclude: true,
     scope: {
       heading: '@',
@@ -205,8 +202,13 @@ function($parse, $http, $templateCache, $compile) {
         if (attrs.active) {
           getActive = $parse(attrs.active);
           setActive = getActive.assign;
-          scope.$parent.$watch(getActive, function updateActive(value) {
-            scope.active = !!value;
+          scope.$parent.$watch(getActive, function updateActive(value, oldVal) {
+            // Avoid re-initializing scope.active as it is already initialized
+            // below. (watcher is called async during init with value ===
+            // oldVal)
+            if (value !== oldVal) {
+              scope.active = !!value;
+            }
           });
           scope.active = getActive(scope.$parent);
         } else {
@@ -214,6 +216,8 @@ function($parse, $http, $templateCache, $compile) {
         }
 
         scope.$watch('active', function(active) {
+          // Note this watcher also initializes and assigns scope.active to the
+          // attrs.active expression.
           setActive(scope.$parent, active);
           if (active) {
             tabsetCtrl.select(scope);
@@ -240,9 +244,6 @@ function($parse, $http, $templateCache, $compile) {
         scope.$on('$destroy', function() {
           tabsetCtrl.removeTab(scope);
         });
-        if (scope.active) {
-          setActive(scope.$parent, true);
-        }
 
 
         //We need to transclude later, once the content container is ready.
@@ -268,7 +269,7 @@ function($parse, $http, $templateCache, $compile) {
   };
 }])
 
-.directive('tabContentTransclude', ['$compile', '$parse', function($compile, $parse) {
+.directive('tabContentTransclude', function() {
   return {
     restrict: 'A',
     require: '^tabset',
@@ -297,13 +298,13 @@ function($parse, $http, $templateCache, $compile) {
       node.tagName.toLowerCase() === 'data-tab-heading'
     );
   }
-}])
+})
 
-.directive('tabsetTitles', ['$http', function($http) {
+.directive('tabsetTitles', ['tabsConfig', function(tabsConfig) {
   return {
     restrict: 'A',
     require: '^tabset',
-    templateUrl: 'template/tabs/tabset-titles.html',
+    templateUrl: tabsConfig.titlesTemplateUrl,
     replace: true,
     link: function(scope, elm, attrs, tabsetCtrl) {
       if (!scope.$eval(attrs.tabsetTitles)) {
@@ -316,7 +317,4 @@ function($parse, $http, $templateCache, $compile) {
       }
     }
   };
-}])
-
-;
-
+}]);

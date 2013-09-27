@@ -11,7 +11,8 @@ angular.module('ui.bootstrap.datepicker', ['ui.bootstrap.position'])
   startingDay: 0,
   yearRange: 20,
   minDate: null,
-  maxDate: null
+  maxDate: null,
+  templateUrl: 'template/datepicker/datepicker.html' 
 })
 
 .controller('DatepickerController', ['$scope', '$attrs', 'dateFilter', 'datepickerConfig', function($scope, $attrs, dateFilter, dtConfig) {
@@ -127,7 +128,7 @@ angular.module('ui.bootstrap.datepicker', ['ui.bootstrap.position'])
   return {
     restrict: 'EA',
     replace: true,
-    templateUrl: 'template/datepicker/datepicker.html',
+    templateUrl: datepickerConfig.templateUrl,
     scope: {
       dateDisabled: '&'
     },
@@ -258,7 +259,7 @@ angular.module('ui.bootstrap.datepicker', ['ui.bootstrap.position'])
   clearText: 'Clear',
   closeText: 'Done',
   closeOnDateSelection: true,
-  appendToBody: false
+  templateUrl: 'template/datepicker/popup.html'
 })
 
 .directive('datepickerPopup', ['$compile', '$parse', '$document', '$position', 'dateFilter', 'datepickerPopupConfig',
@@ -267,18 +268,12 @@ function ($compile, $parse, $document, $position, dateFilter, datepickerPopupCon
     restrict: 'EA',
     require: 'ngModel',
     link: function(originalScope, element, attrs, ngModel) {
-      var dateFormat;
-      attrs.$observe('datepickerPopup', function(value) {
-          dateFormat = value || datepickerPopupConfig.dateFormat;
-          ngModel.$render();
-      });
 
-      var closeOnDateSelection = angular.isDefined(attrs.closeOnDateSelection) ? originalScope.$eval(attrs.closeOnDateSelection) : datepickerPopupConfig.closeOnDateSelection;
-      var appendToBody = angular.isDefined(attrs.datepickerAppendToBody) ? originalScope.$eval(attrs.datepickerAppendToBody) : datepickerPopupConfig.appendToBody;
+      var closeOnDateSelection = angular.isDefined(attrs.closeOnDateSelection) ? scope.$eval(attrs.closeOnDateSelection) : datepickerPopupConfig.closeOnDateSelection;
+      var dateFormat = attrs.datepickerPopup || datepickerPopupConfig.dateFormat;
 
       // create a child scope for the datepicker directive so we are not polluting original scope
       var scope = originalScope.$new();
-
       originalScope.$on('$destroy', function() {
         scope.$destroy();
       });
@@ -450,22 +445,17 @@ function ($compile, $parse, $document, $position, dateFilter, datepickerPopupCon
         $setModelValue(originalScope, null);
       };
 
-      var $popup = $compile(popupEl)(scope);
-      if ( appendToBody ) {
-        $document.find('body').append($popup);
-      } else {
-        element.after($popup);
-      }
+      element.after($compile(popupEl)(scope));
     }
   };
 }])
 
-.directive('datepickerPopupWrap', function() {
+.directive('datepickerPopupWrap', ['datepickerPopupConfig', function(datepickerPopupConfig) {
   return {
     restrict:'E',
     replace: true,
     transclude: true,
-    templateUrl: 'template/datepicker/popup.html',
+    templateUrl: datepickerPopupConfig.templateUrl,
     link:function (scope, element, attrs) {
       element.bind('click', function(event) {
         event.preventDefault();
@@ -473,4 +463,4 @@ function ($compile, $parse, $document, $position, dateFilter, datepickerPopupCon
       });
     }
   };
-});
+}]);
